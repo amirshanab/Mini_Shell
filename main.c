@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <wait.h>
 #include <stdlib.h>
-
+//amir
 int countLines(char *fname);
 void StringFun(const char *s, int *WC);
 void writeToFile(char *userIn, char *path);
