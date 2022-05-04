@@ -23,7 +23,7 @@ void handler();
 
 static int numOfPid=1;
 
-void handler(){
+void handler(){// a function that takes care of killing the process after it's done in the background.
     int st;
     waitpid(-1,&st,WNOHANG);
 }
@@ -51,7 +51,7 @@ int countLines(char *fname) {// count lines in file
     return lineCount;
 }
 
-int explanation(char *userIn){
+int explanation(char *userIn){// a function that runs over the whole string input and checks if the user is trying to call a command from the history.
 
     for(int i =0; i < strlen(userIn); i++){
         if(userIn[i] == '!'){
@@ -76,7 +76,7 @@ void StringFun(const char *s, int *WC) {//a function to count the number of word
     *WC = word;
 }
 
-void writeToFile(char *userIn, char *path) {
+void writeToFile(char *userIn, char *path) {// a function that takes in the users input and places it in the history file.
     FILE *fp1;
     fp1 = fopen(path, "a+");
     fprintf(fp1, "%s", userIn);
@@ -114,7 +114,7 @@ int checkForPipes(char *userIn) {// a function that counts the amount of pipes i
     int count = 0;
     for (int i = 0; i < strlen(userIn); i++) {
 
-        if (userIn[i] == '|')
+        if (userIn[i] == '|')//  count how many pipes the user is using.
             count++;
     }
     return count;
@@ -218,29 +218,29 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
     token = strtok(NULL, "|");
     char secondC[strlen(token) + 2];
     strcpy(secondC, token);
-    if (changString(firstC) == -1) {
+    if (changString(firstC) == -1) {// checking if the string before the pipe had any explanation mark (calling from history)
         return;
     }
-    if (changString(secondC) == -1) {
+    if (changString(secondC) == -1) {// checking if the string after the pipe had any explanation mark (calling from history)
         return;
     }
 
-    char clean[strlen(firstC) + strlen(secondC) + 5];
+    char clean[strlen(firstC) + strlen(secondC) + 5];// combining the two strings into one.
     sprintf(clean,"%s|%s", firstC,secondC);// putting the split up strings into one string.
     if (checkForPipes(clean) > 0){
-        if(amper == 1){
+        if(amper == 1){// if the original input had an & at the end we add it to the newly made string.
             clean[strlen(clean)-1] = '&';
             remove_spaces(clean);
         }
 
-        if(checkForPipes(clean) == 2){
+        if(checkForPipes(clean) == 2){// if the newly created string has 2 pipes instead of one we send it to the function that handles the two pipes
             remove_spaces(clean);
             twoPipeEx(clean,checkForExp);
             return;
         }
-        if(checkForPipes(clean) > 2){
-            fprintf(stderr, "can't use more than two pipes.\n");
-            return;
+        if(checkForPipes(clean) > 2){// if the newly created string has more than 2 pipes.
+            fprintf(stderr, "can't use more than two pipes.\n");//print an error message.
+            return;//go back to the main screen.
         }
 
     }
@@ -252,28 +252,28 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
     StringFun(firstC, &fWC);
     StringFun(secondC, &sWC);
 
-    char *fCommand[fWC + 1];
+    char *fCommand[fWC + 1];// creating an array for the first command before the pipe
     arrFun(firstC, fCommand);
     fCommand[fWC] = NULL;
     StringFun(secondC, &sWC);
-    char *sCommand[sWC + 1];
+    char *sCommand[sWC + 1];// creating an array for the second command after the pipe
     arrFun(secondC, sCommand);
     sCommand[sWC] = NULL;
 
 
-        if(strcmp(fCommand[0],"cd") == 0 && fWC == 1) {
-            fprintf(stderr, "this function is not available yet.\n");
-            return;
+        if(strcmp(fCommand[0],"cd") == 0 && fWC == 1) {// if the first command is cd
+            fprintf(stderr, "this function is not available yet.\n");//print out an error message
+            return;// go back to the main screen
     }
 
-        if(strcmp(sCommand[0],"cd") == 0 && sWC == 1){
-            fprintf(stderr,"this function is not available yet.\n");
-            return;
+        if(strcmp(sCommand[0],"cd") == 0 && sWC == 1){// if the second command is cd
+            fprintf(stderr,"this function is not available yet.\n");// print out an error message
+            return;//go back to the main screen
         }
 
 
-    if(checkForExp == 1){
-        for(int i = 0; i < fWC; i++){
+    if(checkForExp == 1){// if one or both of the commands where called from the history
+        for(int i = 0; i < fWC; i++){// print out what commands are going to  be running.
             printf("%s ", fCommand[i]);
         }
         printf( "| ");
@@ -285,8 +285,8 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
 
     int pipefd[2];
     int status;
-    pid_t leftpid, rightpid;
-    if (pipe(pipefd) < 0) {
+    pid_t leftpid, rightpid;// creating two child process.
+    if (pipe(pipefd) < 0) {// error
         perror("pipe failed");
         for (int p = 0; p <= fWC; p++) {// free the command array
             free(fCommand[p]);
@@ -297,7 +297,7 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
         exit(EXIT_FAILURE);
     }
     leftpid = fork();
-    if (leftpid < 0) {
+    if (leftpid < 0) {// error
         perror("fork failed");
         for (int p = 0; p <= fWC; p++) {// free the command array
             free(fCommand[p]);
@@ -307,7 +307,7 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
         }
         exit(EXIT_FAILURE);
     }
-    if (leftpid == 0) {
+    if (leftpid == 0) {// first child process
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         if (execvp(fCommand[0], fCommand) == -1) {
@@ -318,7 +318,7 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
         exit(0);
     } else {
         rightpid = fork();
-        if (rightpid < 0) {
+        if (rightpid < 0) {// error
             perror("fork failed");
             for (int p = 0; p <= fWC; p++) {// free the command array
                 free(fCommand[p]);
@@ -328,7 +328,7 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
             }
             exit(1);
         }
-        if (rightpid == 0) {
+        if (rightpid == 0) {// second child process
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             if (execvp(sCommand[0], sCommand) == -1) {
@@ -341,11 +341,11 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
     }
     close(pipefd[0]);
     close(pipefd[1]);
-    if (amper != 1) {
+    if (amper != 1) {// if & is inputted at the end of the user input.
         wait(&status);
         wait(&status);
     }
-    if(amper == 1){
+    if(amper == 1){//print out the process pid.
         printf("[%d] %d\n", numOfPid,rightpid);
         numOfPid++;
     }
@@ -361,6 +361,12 @@ void onePipeEx(char *userIn, int checkForExp) {// a function that takes care of 
 }
 
 void twoPipeEx(char *userIn, int checkForExp) {
+    /*
+     * this function takes care of a two pipe input
+     * splits the user input into 3 strings
+     * creates 3 arrays and places each string into one of them
+     * then the 3 arrays are sent off to the execvp function to run the commands.
+     */
     int amper = 0;
     if (userIn[strlen(userIn) - 2] == '&') {
         amper = 1;
@@ -378,34 +384,34 @@ void twoPipeEx(char *userIn, int checkForExp) {
     char *token = strtok(userIn, "|");
     char firstC[strlen(token)];
     strcpy(firstC, token);
-    if(changString(firstC) == -1){
+    if(changString(firstC) == -1){// checking if the user is calling a command from the history file
         return;
     }
     token = strtok(NULL, "|");
     char secondC[strlen(token) + 1];
     strcpy(secondC, token);
-    if(changString(secondC)==-1){
+    if(changString(secondC)==-1){// checking if the user is calling a command from the history file.
         return;
 
     }
     token = strtok(NULL, "|");
     char thirdC[strlen(token)];
     strcpy(thirdC, token);
-    if(changString(thirdC) == -1){
+    if(changString(thirdC) == -1){// checking if the user is calling for a command from the history file.
         return;
     }
-    char clean[strlen(firstC) + strlen(secondC) + strlen(thirdC) + 6];
+    char clean[strlen(firstC) + strlen(secondC) + strlen(thirdC) + 6]; // combining the 3 strings into one.
     sprintf(clean,"%s|%s|%s", firstC,secondC,thirdC);
-    if(amper == 1){
+    if(amper == 1){// if & was in the original input we added back to the newly created array.
         clean[strlen(clean)-1] = '&';
     }
     remove_spaces(clean);
-    if(checkForPipes(clean) > 2){
-        fprintf(stderr, "can't use more than two pipes.\n");
+    if(checkForPipes(clean) > 2){// making sure that the input only has 2 pipes
+        fprintf(stderr, "can't use more than two pipes.\n");// if we count more than 2 we print out an error message and go back to the main screen.
         return;
     }
 
-    writeToFile(clean,"file.txt");
+    writeToFile(clean,"file.txt");// send the newly created sting to the history file.
     remove_spaces(firstC);
     remove_spaces(secondC);
     remove_spaces(thirdC);
@@ -414,17 +420,17 @@ void twoPipeEx(char *userIn, int checkForExp) {
     StringFun(secondC, &sWC);
     StringFun(thirdC, &tWC);
 
-    char *fCommand[fWC + 1];
+    char *fCommand[fWC + 1];// creating an array for the first command
     arrFun(firstC, fCommand);
     fCommand[fWC] = NULL;
-    char *sCommand[sWC + 1];
+    char *sCommand[sWC + 1];// creating an array for the second command
     arrFun(secondC, sCommand);
     sCommand[sWC] = NULL;
-    char *tCommand[tWC + 1];
+    char *tCommand[tWC + 1];// creating an array for the third command
     arrFun(thirdC, tCommand);
     tCommand[tWC] = NULL;
 
-    if(checkForExp == 1){
+    if(checkForExp == 1){// if one of the commands was called from the history we print our the commands that are going to be executed.
         for(int i = 0; i < fWC; i++){
             printf("%s ", fCommand[i]);
         }
@@ -439,17 +445,17 @@ void twoPipeEx(char *userIn, int checkForExp) {
         printf("\n");
     }
 
-    if(strcmp(fCommand[0],"cd") == 0 && fWC == 1) {
+    if(strcmp(fCommand[0],"cd") == 0 && fWC == 1) {// if the first command was cd
         fprintf(stderr, "this function is not available yet.\n");
         return;
     }
 
-    if(strcmp(sCommand[0],"cd") == 0 && sWC == 1){
+    if(strcmp(sCommand[0],"cd") == 0 && sWC == 1){// if the second command was cd
         fprintf(stderr,"this function is not available yet.\n");
         return;
     }
 
-    if(strcmp(tCommand[0], "cd") == 0 && tWC ==1){
+    if(strcmp(tCommand[0], "cd") == 0 && tWC ==1){// if the third command was cd
         fprintf(stderr,"this function is not available yet.\n");
         return;
     }
@@ -461,7 +467,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
     pipe(pipefd);
     pipe(pipefd2);
     leftpid = fork();
-    if (leftpid < 0) {
+    if (leftpid < 0) {//error
         for (int p = 0; p <= fWC; p++) {// free the command array
             free(fCommand[p]);
         }
@@ -477,7 +483,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
         close(pipefd2[1]);
         exit(1);
     }
-    if (leftpid == 0) {
+    if (leftpid == 0) {// first child process.
         close(pipefd[0]);
         close(pipefd2[0]);
         close(pipefd2[1]);
@@ -490,7 +496,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
         exit(0);
     }
     middlepid = fork();
-    if (middlepid < 0) {
+    if (middlepid < 0) {//error
         for (int p = 0; p <= fWC; p++) {// free the command array
             free(fCommand[p]);
         }
@@ -505,7 +511,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
         close(pipefd2[0]);
         close(pipefd2[1]);
         exit(1);
-    } else if (middlepid == 0) {
+    } else if (middlepid == 0) {// middle child process
         close(pipefd[1]);
         close(pipefd2[0]);
         dup2(pipefd[0], STDIN_FILENO);
@@ -518,7 +524,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
         close(pipefd2[1]);
     }
     rightpid = fork();
-    if (rightpid < 0) {
+    if (rightpid < 0) {//error
         for (int p = 0; p <= fWC; p++) {// free the command array
             free(fCommand[p]);
         }
@@ -533,7 +539,7 @@ void twoPipeEx(char *userIn, int checkForExp) {
         close(pipefd2[0]);
         close(pipefd2[1]);
         exit(1);
-    } else if (rightpid == 0) {
+    } else if (rightpid == 0) {// third child process.
         close(pipefd[0]);
         close(pipefd[1]);
         close(pipefd2[1]);
@@ -553,12 +559,16 @@ void twoPipeEx(char *userIn, int checkForExp) {
             wait(&status);
             wait(&status);
         }
-        if(amper == 1){
+        if(amper == 1){// if the command is being run in the background we print out its pid.
             printf("[%d] %d\n", numOfPid,rightpid);
             numOfPid++;
         }
     }
-
+    /*
+     * in the fathers process :-
+     * freeing the arrays that where sent to the execvp function.
+     * resetting all the values that where used.
+     */
     for (int p = 0; p <= fWC; p++) {// free the command array
         free(fCommand[p]);
     }
@@ -672,7 +682,7 @@ void execute(){
                 totalWord += 1;
                 continue;
             }
-
+            StringFun(userIn,&WC);
             char *command[WC + 1];
             command[WC] = NULL;// last index in the array is set to null// the string array to be sent to the execvp function
             arrFun(userIn, command);

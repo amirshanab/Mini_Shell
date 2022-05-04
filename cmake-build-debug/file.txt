@@ -1,2 +1,17 @@
+ls
 history
 ls
+history
+ls -l
+history
+ls -l
+echo amir amir amir
+history
+echo amir amir amir
+history
+ls -l
+history
+ls -l
+history
+echo amir amir amir
+echo amir amir amir| wc
