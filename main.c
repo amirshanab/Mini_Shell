@@ -422,6 +422,7 @@ void twoPipeEx(char *userIn, int checkForExp, int no_hup) {
         return;
 
     }
+
     token = strtok(NULL, "|");
     char thirdC[strlen(token)];
     strcpy(thirdC, token);
