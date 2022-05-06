@@ -1,17 +1,14 @@
-ls
+nohup ls -l
+nohup ls -l| wc
+nohup ls | sort | wc
+nohup ls | sort | wc
 history
-ls
+nohup ls | sort | wc
+nohup ls -l| sort | wc
+nohup ls -l| sort |wc
 history
-ls -l
+nohup ls -l| sort |wc
+nohup ls | sort
 history
-ls -l
-echo amir amir amir
-history
-echo amir amir amir
-history
-ls -l
-history
-ls -l
-history
-echo amir amir amir
-echo amir amir amir| wc
+nohup ls | sort| wc
+ls | wc
