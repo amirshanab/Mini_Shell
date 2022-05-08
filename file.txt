@@ -1,0 +1,13 @@
+ls
+w
+cal
+sleep 10&
+nohup ls
+history
+cal|wc
+ls|sort |wc
+ps
+sleep 10&
+ps
+sleep 10&
+ps

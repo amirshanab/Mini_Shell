@@ -1,13 +1,20 @@
-ls&
-ls
+ls -l
+ls -l
+sleep 5&
+ps
+ps
+nohup sleep 5&
 history
-ls&
-history | wc
-sleep 10&
+nohup sleep 5&
 ls
-l
-ls
-ls | done
-nohup cal
-cat nohup.txt
-nohup ls | wc
+ls -l
+echo amir
+echo amir amir | sort | wc
+echo  amir 
+echo  amir
+echo "amir amir amir" | wc
+echo  amir amir amir 
+echo  amir amir 
+echo  amir amirecho  amir amir
+
+echo "amir amir amir" | wc

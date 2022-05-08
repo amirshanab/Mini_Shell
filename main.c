@@ -37,6 +37,8 @@ void handler();
 
 
 static int numOfPid = 1;
+int count = 0;
+int totalWord = 0;
 
 void handler() {// a function that takes care of killing the process after it's done in the background.
     int st;
@@ -127,21 +129,34 @@ void printHistory(char *path) {// a function to print out the history
 }
 
 int checkForPipes(char *userIn) {// a function that counts the amount of pipes in the user input
-    int count = 0;
+    int counter = 0;
     for (int i = 0; i < strlen(userIn); i++) {
 
         if (userIn[i] == '|')//  count how many pipes the user is using.
-            count++;
+            counter++;
     }
-    return count;
+    return counter;
 }
 
 void arrFun(char *userIn, char **command) {// a function to split the string into an array.
     int z = 0;
+    int echo =0;
     int startingIndex = 0;
     int i = 0;
     while (userIn[i] == ' ')
         i++;
+
+    if(strncmp(&userIn[i], "echo ", 5) == 0){
+        if(userIn[strlen(userIn)-2] == '"')
+            userIn[strlen(userIn)-2]='\n';
+        for(int k = i; k <strlen(userIn)-1; k++){
+            if(userIn[k] == '"'){
+                userIn[k] = ' ';
+            }
+        }
+    }
+
+
     for (; i < strlen(userIn) - 1; i++) {// going over the input and placing every word in it into the string array
         if (userIn[i] == ' ' || userIn[i + 1] == '\n') {
             if (userIn[i + 1] == '\n') {
@@ -380,6 +395,8 @@ void onePipeEx(char *userIn, int checkForExp, int no_hup) {// a function that ta
     for (int p = 0; p <= sWC; p++) {// free the command array
         free(sCommand[p]);
     }
+    count += 2;
+    totalWord += fWC + sWC;
     fWC = 0;
     sWC = 0;
 }
@@ -610,14 +627,14 @@ void twoPipeEx(char *userIn, int checkForExp, int no_hup) {
     for (int p = 0; p <= tWC; p++) {// free the command array
         free(tCommand[p]);
     }
+    count += 3;
+    totalWord += fWC + sWC + tWC;
     fWC = 0;
     sWC = 0;
     WC = 0;
 }
 
 void execute() {
-    int count = 0;
-    int totalWord = 0;
 
     char userIn[512];
     memset(userIn, (int) '\0', 512);
@@ -639,27 +656,33 @@ void execute() {
         fflush(stdin);
         StringFun(userIn, &WC);//send to a function that counts the words.
 
+        /*
+         * in this function the user's input is taken in and being checked for multiple
+         * conditions and depending on which the program takes it to the right function to work on it.
+         */
+
+        if (userIn[0] == ' ' || userIn[strlen(userIn) - 2] == ' ') {// if there are spaces before or after the input.
+            if (WC != 0) {
+                writeToFile(userIn, filname);
+                count += 1;
+                totalWord += WC;
+            }
+            fprintf(stderr, "Space detected at the start or at the end of the sentence\n");
+            continue;
+        }
+
         int checkForExp = explanation(userIn);
 
         if (checkForExp == 1 && WC == 1 && changString(userIn) != -1)
 
-            if (userIn[0] == ' ' || userIn[strlen(userIn) - 2] == ' ') {// if there are spaces before or after the input.
-                if (WC != 0) {
-                    writeToFile(userIn, filname);
-                    count += 1;
-                    totalWord += WC;
-                }
-                fprintf(stderr, "Space detected at the start or at the end of the sentence\n");
-                continue;
-            }
 
-        if (userIn[strlen(userIn) - 2] == '&' && checkForPipes(userIn) == 0) {
-            amper = 1;
-            userIn[strlen(userIn) - 2] = ' ';
-            remove_spaces(userIn);
-            StringFun(userIn, &WC);
-        }
-        if (strncmp(userIn, "nohup ", 6) == 0) {
+            if (userIn[strlen(userIn) - 2] == '&' && checkForPipes(userIn) == 0) {
+                amper = 1;
+                userIn[strlen(userIn) - 2] = ' ';
+                remove_spaces(userIn);
+                StringFun(userIn, &WC);
+            }
+        if (strncmp(userIn, "nohup ", 6) == 0) {// if nohup was inputted
             no_hup = 1;
             signal(SIGHUP, SIG_IGN);
         }
@@ -677,19 +700,19 @@ void execute() {
             remove_spaces(userIn);
             StringFun(userIn, &WC);
         }
-        if (checkForPipes(userIn) > 0) {
-            if (checkForPipes(userIn) == 1) {
+        if (checkForPipes(userIn) > 0) {// in case of pipes being used
+            if (checkForPipes(userIn) == 1) {//if its one pipe
                 onePipeEx(userIn, checkForExp, no_hup);
                 continue;
 
-            } else if (checkForPipes(userIn) == 2) {
+            } else if (checkForPipes(userIn) == 2) {// in case of two pipes
                 twoPipeEx(userIn, checkForExp, no_hup);
                 continue;
             }
-            if (checkForPipes(userIn) > 2) {
+            if (checkForPipes(userIn) > 2) {// if more than two pipes.
                 fprintf(stderr, "can't use more than two pipes.\n");
+                continue;
             }
-            continue;
 
         }
 
@@ -699,6 +722,8 @@ void execute() {
             fclose(fp1);
             exit(0);
         } else if (strncmp(userIn, "history -c", 10) == 0 && strlen(userIn) == 11) {
+            count += 1;
+            totalWord += 1;
             printf("history cleared\n");
             clear_history(filname);
         } else if (strncmp(userIn, "cd", 2) == 0 && strlen(userIn) == 3) {
