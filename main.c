@@ -138,6 +138,7 @@ int checkForPipes(char *userIn) {// a function that counts the amount of pipes i
     return counter;
 }
 
+
 void arrFun(char *userIn, char **command) {// a function to split the string into an array.
     int z = 0;
     int echo =0;
