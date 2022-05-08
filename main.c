@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <wait.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 //amir
 int countLines(char *fname);
@@ -32,19 +33,10 @@ void execute();
 
 void clear_history(char *path);
 
-void write_nohupOut(char *output);
-
 void handler();
 
 
 static int numOfPid = 1;
-
-void write_nohupOut(char *output){
-    FILE *fp1;
-    fp1 = fopen("nohup.txt", "a+");
-    fprintf(fp1, "%s", output);
-    fclose(fp1);
-}
 
 void handler() {// a function that takes care of killing the process after it's done in the background.
     int st;
@@ -232,25 +224,29 @@ void onePipeEx(char *userIn, int checkForExp, int no_hup) {// a function that ta
 
     int fWC = 0;
     int sWC = 0;
-
+    int index = 0;
 
     char *token = strtok(userIn, "|");
     char firstC[strlen(token) + 2];
     memset(firstC, (int) '\0', strlen(token) + 2);
     strcpy(firstC, token);
 
+    if (no_hup == 1) {
+        index = 6;
+    }
+
     token = strtok(NULL, "|");
     char secondC[strlen(token) + 2];
     memset(secondC, (int) '\0', strlen(token) + 2);
     strcpy(secondC, token);
-    if (checkForExp > 0 && changString(firstC) == -1) {// checking if the string before the pipe had any explanation mark (calling from history)
+    if (checkForExp > 0 && changString(&firstC[index]) == -1) {// checking if the string before the pipe had any explanation mark (calling from history)
         return;
     }
     if (checkForExp > 0 && changString(secondC) == -1) {// checking if the string after the pipe had any explanation mark (calling from history)
         return;
     }
-    if(strncmp(firstC,"nohup ", 6) == 0){
-        no_hup=1;
+    if (strncmp(firstC, "nohup ", 6) == 0) {
+        no_hup = 1;
     }
 
     char clean[strlen(firstC) + strlen(secondC) + 5];// combining the two strings into one.
@@ -263,7 +259,7 @@ void onePipeEx(char *userIn, int checkForExp, int no_hup) {// a function that ta
 
         if (checkForPipes(clean) == 2) {// if the newly created string has 2 pipes instead of one we send it to the function that handles the two pipes
             remove_spaces(clean);
-            twoPipeEx(clean, checkForExp,no_hup);
+            twoPipeEx(clean, checkForExp, no_hup);
             return;
         }
         if (checkForPipes(clean) > 2) {// if the newly created string has more than 2 pipes.
@@ -405,14 +401,17 @@ void twoPipeEx(char *userIn, int checkForExp, int no_hup) {
     int sWC = 0;
     int tWC = 0;
     int WC = 0;
+    int index = 0;
 
     StringFun(userIn, &WC);
-
 
     char *token = strtok(userIn, "|");
     char firstC[strlen(token)];
     strcpy(firstC, token);
-    if (changString(firstC) == -1) {// checking if the user is calling a command from the history file
+    if (no_hup == 1) {
+        index = 6;
+    }
+    if (changString(&firstC[index]) == -1) {// checking if the user is calling a command from the history file
         return;
     }
     token = strtok(NULL, "|");
@@ -429,8 +428,8 @@ void twoPipeEx(char *userIn, int checkForExp, int no_hup) {
     if (changString(thirdC) == -1) {// checking if the user is calling for a command from the history file.
         return;
     }
-    if(strncmp(firstC,"nohup ",6) == 0){
-        no_hup=1;
+    if (strncmp(firstC, "nohup ", 6) == 0) {
+        no_hup = 1;
     }
     char clean[strlen(firstC) + strlen(secondC) + strlen(thirdC) + 6]; // combining the 3 strings into one.
     sprintf(clean, "%s|%s|%s", firstC, secondC, thirdC);
@@ -477,7 +476,7 @@ void twoPipeEx(char *userIn, int checkForExp, int no_hup) {
         printf("\n");
     }
 
-    if (strcmp(fCommand[no_hup], "cd") == 0 && fWC == no_hup+1) {// if the first command was cd
+    if (strcmp(fCommand[no_hup], "cd") == 0 && fWC == no_hup + 1) {// if the first command was cd
         fprintf(stderr, "this function is not available yet.\n");
         return;
     }
@@ -634,6 +633,7 @@ void execute() {
         int WC = 0;
         int amper = 0;
         int no_hup = 0;
+        int index = 0;
         printf("%s>", cwd);// print out the input reciver
         fgets(userIn, 512, stdin);// save the user input
         fflush(stdin);
@@ -641,17 +641,33 @@ void execute() {
 
         int checkForExp = explanation(userIn);
 
-        if (checkForPipes(userIn) == 0 && changString(userIn) == -1) {
-            continue;
+        if (checkForExp == 1 && WC == 1 && changString(userIn) != -1)
+
+            if (userIn[0] == ' ' || userIn[strlen(userIn) - 2] == ' ') {// if there are spaces before or after the input.
+                if (WC != 0) {
+                    writeToFile(userIn, filname);
+                    count += 1;
+                    totalWord += WC;
+                }
+                fprintf(stderr, "Space detected at the start or at the end of the sentence\n");
+                continue;
+            }
+
+        if (userIn[strlen(userIn) - 2] == '&' && checkForPipes(userIn) == 0) {
+            amper = 1;
+            userIn[strlen(userIn) - 2] = ' ';
+            remove_spaces(userIn);
+            StringFun(userIn, &WC);
+        }
+        if (strncmp(userIn, "nohup ", 6) == 0) {
+            no_hup = 1;
+            signal(SIGHUP, SIG_IGN);
+        }
+        if (no_hup == 1) {
+            index = 6;
         }
 
-        if (userIn[0] == ' ' || userIn[strlen(userIn) - 2] == ' ') {// if there are spaces before or after the input.
-            if (WC != 0) {
-                writeToFile(userIn, filname);
-                count += 1;
-                totalWord += WC;
-            }
-            fprintf(stderr, "Space detected at the start or at the end of the sentence\n");
+        if (checkForPipes(userIn) == 0 && changString(&userIn[index]) == -1) {
             continue;
         }
         remove_spaces(userIn);
@@ -661,17 +677,13 @@ void execute() {
             remove_spaces(userIn);
             StringFun(userIn, &WC);
         }
-        if(strncmp(userIn,"nohup ", 6)==0){
-            no_hup=1;
-        }
-
         if (checkForPipes(userIn) > 0) {
             if (checkForPipes(userIn) == 1) {
-                onePipeEx(userIn, checkForExp,no_hup);
+                onePipeEx(userIn, checkForExp, no_hup);
                 continue;
 
             } else if (checkForPipes(userIn) == 2) {
-                twoPipeEx(userIn, checkForExp,no_hup);
+                twoPipeEx(userIn, checkForExp, no_hup);
                 continue;
             }
             if (checkForPipes(userIn) > 2) {
@@ -706,8 +718,6 @@ void execute() {
             }// if the file pointer is null
             if (WC == 0)
                 continue;
-
-
             if (strncmp(userIn, "history", 7) == 0) {// after changing the input from !x to the command from the history file we have to check if the command is history.
                 printHistory(filname);
                 count += 1;
@@ -718,17 +728,21 @@ void execute() {
             char *command[WC + 1];
             command[WC] = NULL;// last index in the array is set to null// the string array to be sent to the execvp function
             arrFun(userIn, command);
-            if (amper == 1){
+            if (amper == 1) {
                 userIn[strlen(userIn) - 1] = '&';
                 remove_spaces(userIn);
             }
-                writeToFile(userIn, filname);// place the input in file(write to file)
+            writeToFile(userIn, filname);// place the input in file(write to file)
 
             if (checkForExp == 1) {
-                for (int i = 0; i < WC; i++) {
-                    printf("%s ", command[i]);
+                printf("%s ", userIn);
+            }
+            int fp3;
+            if (no_hup == 1) {
+                fp3 = open("nohup.txt", O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+                if (fp3 < 0) {
+                    perror("could not create file\n");
                 }
-                printf("\n");
             }
             pid_t child = fork();
             if (child < 0) {
@@ -739,6 +753,9 @@ void execute() {
                 exit(1);
             }
             if (child == 0) {//child process
+                if (no_hup == 1) {
+                    dup2(fp3, STDOUT_FILENO);
+                }
                 if (execvp(command[no_hup], &command[no_hup]) == -1) {//if the execvp function does not work :-
                     perror("execvp error");//print error message
                     exit(EXIT_FAILURE);
@@ -749,6 +766,9 @@ void execute() {
             if (amper == 1) {
                 printf("[%d] %d\n", numOfPid, child);
                 numOfPid++;
+            }
+            if (no_hup == 1) {
+                close(fp3);
             }
             if (amper != 1) {
                 wait(NULL);//wait for the child process to finish

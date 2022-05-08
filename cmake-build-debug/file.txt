@@ -1,14 +1,13 @@
-nohup ls -l
-nohup ls -l| wc
-nohup ls | sort | wc
-nohup ls | sort | wc
+ls&
+ls
 history
-nohup ls | sort | wc
-nohup ls -l| sort | wc
-nohup ls -l| sort |wc
-history
-nohup ls -l| sort |wc
-nohup ls | sort
-history
-nohup ls | sort| wc
-ls | wc
+ls&
+history | wc
+sleep 10&
+ls
+l
+ls
+ls | done
+nohup cal
+cat nohup.txt
+nohup ls | wc
